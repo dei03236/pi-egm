@@ -1,5 +1,6 @@
 {
-  "name": "@rizkiaprita/egm",
+  "name": "tklu",
+  "private": true,
   "version": "0.3.2",
   "type": "module",
   "description": "Draft specs, review designs, and check implementation drift.",
@@ -20,9 +21,6 @@
   "homepage": "https://egm.dev",
   "repository": "https://github.com/google/elephant-goldfish-model",
   "license": "Apache-2.0",
-  "publishConfig": {
-    "access": "public"
-  },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-agent-core": "*",
@@ -43,6 +41,7 @@
     "package.json",
     "LICENSE",
     "README.md",
+    "FORK.md",
     "assets/icon.svg",
     "extensions/",
     "skills/",

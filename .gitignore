@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+.env
+.env.*
+!.env.example
+.npmrc
+*.log
+.DS_Store
+Thumbs.db

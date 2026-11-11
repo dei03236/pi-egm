@@ -1,3 +1,7 @@
+> **Local fork: `tklu`** — based on the installed `@rizkiaprita/egm@0.3.2` snapshot.
+> This package is private and is not published to npm. See [FORK.md](FORK.md) for local usage and provenance.
+> The upstream README follows; its npm installation instructions refer to upstream packages, not this fork.
+
 <p align="center">
   <a href="https://egm.dev"><img src="docs/assets/readme-header.svg" width="480" height="116" alt="Elephant-Goldfish Model"></a>
 </p>
