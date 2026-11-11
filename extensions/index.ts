@@ -76,7 +76,7 @@ function resolvePersonaPath(subagent: string): string | null {
   return existsSync(fallback) ? fallback : null;
 }
 
-function createSubagentToolDefinition(pkgRoot: string) {
+function createSubagentToolDefinition(pkgRoot: string, events: ExtensionAPI["events"]) {
   return {
     name: "invoke_subagent",
     label: "invoke_subagent",
@@ -98,10 +98,10 @@ function createSubagentToolDefinition(pkgRoot: string) {
       let customTools: any[] = [];
       if (isSynth) {
         activeTools = SYNTHESIZER_TOOLS;
-        customTools = [createSubagentToolDefinition(pkgRoot)];
+        customTools = [createSubagentToolDefinition(pkgRoot, events)];
       } else if (isBootstrap) {
         activeTools = BOOTSTRAP_TOOLS;
-        customTools = [createSubagentToolDefinition(pkgRoot)];
+        customTools = [createSubagentToolDefinition(pkgRoot, events)];
       } else {
         activeTools = READ_ONLY_REVIEWER_TOOLS;
       }
@@ -115,24 +115,39 @@ function createSubagentToolDefinition(pkgRoot: string) {
         model: ctx.model,
       });
 
-      let assembledPrompt = "";
-      const personaPath = resolvePersonaPath(subagent);
-      if (personaPath) {
-        const personaText = await fs.readFile(personaPath, "utf-8");
-        assembledPrompt += `You are operating as the specialized persona defined below:\n\n${personaText}\n\n---\n\n`;
-      }
-      if (params.mode) {
-        assembledPrompt += `Mode: ${params.mode}\n\n`;
-      }
-      if (Array.isArray(params.context_files) && params.context_files.length > 0) {
-        assembledPrompt += `Context files to examine:\n${params.context_files.map((f: string) => `- ${f}`).join("\n")}\n\n`;
-      }
-      assembledPrompt += taskPrompt;
+      const sessionId = sessionManager.getSessionId();
+      const parentSessionId = ctx.sessionManager.getSessionId();
+      const abortChild = () => { void childSession.abort(); };
+      _signal?.addEventListener("abort", abortChild, { once: true });
 
       try {
+        _signal?.throwIfAborted();
+
+        // Announce synchronously before binding so the permission extension can
+        // detect this child and forward asks to its parent, including nested runs.
+        events.emit("subagents:child:session-created", { sessionId, parentSessionId });
+        await childSession.bindExtensions({});
+        events.emit("subagents:child:bound", { sessionId, parentSessionId });
+        _signal?.throwIfAborted();
+
+        let assembledPrompt = "";
+        const personaPath = resolvePersonaPath(subagent);
+        if (personaPath) {
+          const personaText = await fs.readFile(personaPath, "utf-8");
+          assembledPrompt += `You are operating as the specialized persona defined below:\n\n${personaText}\n\n---\n\n`;
+        }
+        if (params.mode) {
+          assembledPrompt += `Mode: ${params.mode}\n\n`;
+        }
+        if (Array.isArray(params.context_files) && params.context_files.length > 0) {
+          assembledPrompt += `Context files to examine:\n${params.context_files.map((f: string) => `- ${f}`).join("\n")}\n\n`;
+        }
+        assembledPrompt += taskPrompt;
+
         if (ctx.ui?.setStatus) {
           ctx.ui.setStatus(`Goldfish [${subagent}] running...`);
         }
+        _signal?.throwIfAborted();
         await childSession.prompt(assembledPrompt);
         const resultText = childSession.getLastAssistantText() || "";
         return {
@@ -140,9 +155,14 @@ function createSubagentToolDefinition(pkgRoot: string) {
           details: { subagent, status: "completed" },
         };
       } finally {
-        childSession.dispose();
-        if (ctx.ui?.setStatus) {
-          ctx.ui.setStatus(undefined);
+        _signal?.removeEventListener("abort", abortChild);
+        try {
+          childSession.dispose();
+        } finally {
+          events.emit("subagents:child:disposed", { sessionId });
+          if (ctx.ui?.setStatus) {
+            ctx.ui.setStatus(undefined);
+          }
         }
       }
     },
@@ -150,7 +170,7 @@ function createSubagentToolDefinition(pkgRoot: string) {
 }
 
 export default function egmExtension(pi: ExtensionAPI) {
-  pi.registerTool(createSubagentToolDefinition(packageRoot));
+  pi.registerTool(createSubagentToolDefinition(packageRoot, pi.events));
   // Slash commands are the skill commands Pi derives from skills/. Do not
   // register /egm-* commands here: prompt shims that forward to a skill showed
   // up twice in the command menu, and command names registered here on top of
