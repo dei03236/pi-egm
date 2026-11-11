@@ -157,7 +157,18 @@ function createSubagentToolDefinition(pkgRoot: string, events: ExtensionAPI["eve
       } finally {
         _signal?.removeEventListener("abort", abortChild);
         try {
-          childSession.dispose();
+          try {
+            // Raw SDK dispose() invalidates ctx without notifying extensions.
+            // Let child extensions release timers and other resources first.
+            const runner = childSession.extensionRunner;
+            if (runner.hasHandlers("session_shutdown")) {
+              await runner.emit({ type: "session_shutdown", reason: "quit" });
+            }
+          } finally {
+            // Disposal and the outer registry notification must survive errors
+            // from shutdown emission as well as bind/prompt/cancellation paths.
+            childSession.dispose();
+          }
         } finally {
           events.emit("subagents:child:disposed", { sessionId });
           if (ctx.ui?.setStatus) {
