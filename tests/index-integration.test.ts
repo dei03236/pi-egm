@@ -15,11 +15,18 @@ const hooks = registerHooks({ resolve(specifier, context, next) {
 const { __testing, default: extension } = await import("../index.ts");
 hooks.deregister();
 
-async function registry() {
+async function registry(additional: { filename: string; name: string }[] = []) {
+  const personas = [{ filename: "synthesizer.md", name: "egm-synthesizer" }, ...additional];
   return loadPersonaRegistry("/fixed", {
-    readdir: async () => ["synthesizer.md"],
+    readdir: async () => personas.map(persona => persona.filename),
     lstat: async () => ({ isFile: () => true, isSymbolicLink: () => false }),
-    readFile: async () => "---\nname: egm-synthesizer\n---\nPERSONA", diagnostic: () => {},
+    readFile: async (filePath: string) => {
+      const filename = filePath.split(/[\\/]/).pop();
+      const persona = personas.find(candidate => candidate.filename === filename);
+      if (!persona) throw new Error(`unexpected registry path: ${filePath}`);
+      return `---\nname: ${persona.name}\n---\nPERSONA`;
+    },
+    diagnostic: () => {},
   });
 }
 function harness(outcome: any, options: { readFailure?: boolean; bindFailure?: boolean; promptFailure?: boolean; shutdownFailure?: boolean } = {}) {
@@ -72,7 +79,7 @@ test("parent and nested tools share one initialization and read only registry pa
   assertCleanup(h.log);
 });
 
-test("initialization rejection while idle is handled immediately and shared with nested tools", async t => {
+test("initialization rejection is handled before child creation", async t => {
   const unhandled: unknown[] = [];
   const listener = (error: unknown) => unhandled.push(error);
   process.on("unhandledRejection", listener);
@@ -88,26 +95,26 @@ test("initialization rejection while idle is handled immediately and shared with
     assert.equal(error.cause, cause);
     return true;
   });
-  await assert.rejects(h.invoke("egm-synthesizer", h.creations[0].customTools[0]), PersonaRegistryInitializationError);
+  await assert.rejects(h.invoke("egm-synthesizer"), PersonaRegistryInitializationError);
   assert.equal(loads, 1);
+  assert.deepEqual(h.creations, []);
   assert.deepEqual(h.reads, []);
-  assert.ok(!h.log.some(item => item.startsWith("prompt:")));
-  assertCleanup(h.log);
+  assert.deepEqual(h.log, []);
 });
 
-test("unknown names never read a caller-derived path or prompt and still clean up", async () => {
-  const outcome = __testing.initializeRegistry("/fixed", registry);
-  for (const name of ["../../secret", "C:\\secret", "egm-design-critic", "egm-bootstrap", "missing"]) {
+test("unknown names are rejected before child-session creation", async () => {
+  const outcome = __testing.initializeRegistry("/fixed", () => registry());
+  for (const name of ["../../secret", "C:\\secret", "egm-design-critic", "egm-bootstrap", "unknown-bootstrap", "unknown-synthesizer", "missing"]) {
     const h = harness(outcome);
     await assert.rejects(h.invoke(name), UnknownPersonaError);
     assert.deepEqual(h.reads, []);
-    assert.ok(!h.log.some(item => item.startsWith("prompt:")));
-    assertCleanup(h.log);
+    assert.deepEqual(h.creations, []);
+    assert.deepEqual(h.log, []);
   }
 });
 
 test("bind, prompt, shutdown and cancellation failures preserve disposal notifications", async () => {
-  const outcome = __testing.initializeRegistry("/fixed", registry);
+  const outcome = __testing.initializeRegistry("/fixed", () => registry());
   for (const options of [{ readFailure: true }, { bindFailure: true }, { promptFailure: true }, { shutdownFailure: true }]) {
     const h = harness(outcome, options);
     await assert.rejects(h.invoke("synthesizer"));
@@ -117,16 +124,30 @@ test("bind, prompt, shutdown and cancellation failures preserve disposal notific
   await assert.rejects(h.invoke("synthesizer", undefined, AbortSignal.abort()));
   assert.deepEqual(h.log.slice(-4), ["shutdown", "dispose", "subagents:child:disposed", "clear"]);
 });
-test("caller-substring tool permissions remain case-sensitive and unchanged (Issue 2)", async () => {
-  const outcome = __testing.initializeRegistry("/fixed", registry);
+test("tool permissions follow exact registered persona identities, not caller substrings", async () => {
+  const outcome = __testing.initializeRegistry("/fixed", () => registry([
+    { filename: "bootstrap_orchestrator.md", name: "egm-bootstrap-orchestrator" },
+    { filename: "custom-bootstrap.md", name: "egm-custom-bootstrap" },
+    { filename: "custom-synthesizer.md", name: "egm-custom-synthesizer" },
+    { filename: "design_critic.md", name: "egm-design" },
+  ]));
+  const synthesizerTools = ["read", "grep", "find", "ls", "write", "invoke_subagent"];
+  const bootstrapTools = ["read", "grep", "find", "ls", "write", "edit", "bash", "invoke_subagent"];
+  const reviewerTools = ["read", "grep", "find", "ls"];
   for (const [name, expected] of [
-    ["egm-synthesizer", ["read", "grep", "find", "ls", "write", "invoke_subagent"]],
-    ["SYNTHESIZER", ["read", "grep", "find", "ls"]],
-    ["unknown-bootstrap", ["read", "grep", "find", "ls", "write", "edit", "bash", "invoke_subagent"]],
+    ["egm-synthesizer", synthesizerTools],
+    ["synthesizer", synthesizerTools],
+    [" SYNTHESIZER ", synthesizerTools],
+    ["egm-bootstrap-orchestrator", bootstrapTools],
+    ["bootstrap_orchestrator", bootstrapTools],
+    ["egm-custom-bootstrap", reviewerTools],
+    ["egm-custom-synthesizer", reviewerTools],
+    ["egm-design", reviewerTools],
   ] as const) {
     const h = harness(outcome);
-    try { await h.invoke(name); } catch (error) { assert.ok(error instanceof UnknownPersonaError); }
-    assert.deepEqual(h.creations[0].tools, expected);
+    await assert.doesNotReject(h.invoke(name), `persona ${name} should resolve`);
+    assert.deepEqual(h.creations[0].tools, expected, name);
+    assert.deepEqual(h.creations[0].customTools.map((tool: any) => tool.name), expected.includes("invoke_subagent") ? ["invoke_subagent"] : [], name);
   }
 });
 

@@ -70,19 +70,26 @@ function createSubagentToolDefinition(
     ) => {
       const subagent = (params.subagent_type || (params as any).persona || (params as any).name || "").trim();
       const taskPrompt = params.prompt || (params as any).task || (params as any).instructions || "";
-      const isSynth = subagent.includes("synthesizer");
-      const isBootstrap = subagent.includes("bootstrap");
+      const outcome = await registryOutcome;
+      if (!outcome.ok) {
+        throw outcome.cause instanceof PersonaRegistryInitializationError
+          ? outcome.cause : new PersonaRegistryInitializationError(outcome.cause);
+      }
+      const persona = lookupPersona(outcome.registry, subagent);
+      const role = persona.sourceFilename === "synthesizer.md" && persona.declaredName === "egm-synthesizer"
+        ? "synthesizer"
+        : persona.sourceFilename === "bootstrap_orchestrator.md" && persona.declaredName === "egm-bootstrap-orchestrator"
+          ? "bootstrap"
+          : "reviewer";
 
-      let activeTools: string[];
+      let activeTools: string[] = READ_ONLY_REVIEWER_TOOLS;
       let customTools: any[] = [];
-      if (isSynth) {
+      if (role === "synthesizer") {
         activeTools = SYNTHESIZER_TOOLS;
         customTools = [createSubagentToolDefinition(pkgRoot, events, registryOutcome, dependencies)];
-      } else if (isBootstrap) {
+      } else if (role === "bootstrap") {
         activeTools = BOOTSTRAP_TOOLS;
         customTools = [createSubagentToolDefinition(pkgRoot, events, registryOutcome, dependencies)];
-      } else {
-        activeTools = READ_ONLY_REVIEWER_TOOLS;
       }
 
       const sessionManager = dependencies.sessionManager();
@@ -110,12 +117,6 @@ function createSubagentToolDefinition(
         _signal?.throwIfAborted();
 
         let assembledPrompt = "";
-        const outcome = await registryOutcome;
-        if (!outcome.ok) {
-          throw outcome.cause instanceof PersonaRegistryInitializationError
-            ? outcome.cause : new PersonaRegistryInitializationError(outcome.cause);
-        }
-        const persona = lookupPersona(outcome.registry, subagent);
         const personaText = await dependencies.readFile(persona.filePath, "utf8");
         assembledPrompt += `You are operating as the specialized persona defined below:\n\n${personaText}\n\n---\n\n`;
         if (params.mode) {
