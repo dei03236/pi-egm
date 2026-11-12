@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const currentDir = typeof __dirname !== "undefined"
   ? __dirname
   : path.dirname(fileURLToPath(import.meta.url));
-const packageRoot = path.resolve(currentDir, "..");
+const packageRoot = currentDir;
 
 const PERSONAS: Record<string, string> = {
   "egm-zoom-out": "agents/zoom_out.md",

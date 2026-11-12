@@ -1,4 +1,4 @@
-# tklu — local EGM fork
+# @tklu/pi-egm — local EGM fork
 
 This is a local, unpublished fork. No npm account is required to use it.
 
@@ -14,7 +14,7 @@ This is a local, unpublished fork. No npm account is required to use it.
 
 ## Initial local modifications
 
-- Rename the package to `tklu`.
+- Rename the package to `@tklu/pi-egm`.
 - Set `private: true` and remove `publishConfig` to guard against accidental npm publication.
 - Add a local-fork notice to `README.md`, this provenance file, and local Git ignore rules.
 - Keep extension code, skills, agent personas, resources, and compatibility identifiers unchanged.

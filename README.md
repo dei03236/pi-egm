@@ -1,4 +1,4 @@
-> **Local fork: `tklu`** — based on the installed `@rizkiaprita/egm@0.3.2` snapshot.
+> **Local fork: `@tklu/pi-egm`** — based on the installed `@rizkiaprita/egm@0.3.2` snapshot.
 > This package is private and is not published to npm. See [FORK.md](FORK.md) for local usage and provenance.
 > The upstream README follows; its npm installation instructions refer to upstream packages, not this fork.
 

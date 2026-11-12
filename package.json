@@ -1,5 +1,5 @@
 {
-  "name": "tklu",
+  "name": "@tklu/pi-egm",
   "private": true,
   "version": "0.3.2",
   "type": "module",
@@ -30,7 +30,7 @@
   },
   "pi": {
     "extensions": [
-      "./extensions/index.ts"
+      "./index.ts"
     ],
     "skills": [
       "./skills"
@@ -43,7 +43,7 @@
     "README.md",
     "FORK.md",
     "assets/icon.svg",
-    "extensions/",
+    "index.ts",
     "skills/",
     "!skills/**/TEST.md",
     "!skills/**/test_scenarios.yaml",
