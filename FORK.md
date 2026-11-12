@@ -9,6 +9,7 @@ This is a local, unpublished fork. No npm account is required to use it.
 - Working directory: `C:\TechemTools\Projekte\sources\pi-egm`.
 - Upstream repository declared by that package: https://github.com/google/elephant-goldfish-model.
 - License: Apache-2.0. Original source copyright headers and `LICENSE` are retained.
+- Selected files have since been updated from Google’s upstream repository at commit [`0997679`](https://github.com/google/elephant-goldfish-model/commit/0997679); this is a partial update, not a full checkout of that commit.
 - This snapshot does not contain upstream Git history and is not asserted to match the pristine npm release or the latest upstream repository.
 - Existing `author`, `repository`, and `homepage` metadata identify the original upstream project, not a hosted repository for this local fork.
 

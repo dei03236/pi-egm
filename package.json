@@ -1,7 +1,7 @@
 {
   "name": "@tklu/pi-egm",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.5.0",
   "type": "module",
   "description": "Draft specs, review designs, and check implementation drift.",
   "keywords": [

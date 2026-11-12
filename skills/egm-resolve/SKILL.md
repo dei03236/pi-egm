@@ -36,9 +36,6 @@ The caller or orchestration driver provides exactly these parameters:
 *   **`FindingsList`**: Aggregated flat list of findings from Goldfish
     reviewers.
 
-In `/skill:egm-resolve <report-file> <target-file>`, the first argument is the
-report that carries `FindingsList` and the second is `TargetFile`.
-
 ## Execution Workflow
 
 ### Step 1: Intake Validation & Gather Context
@@ -98,7 +95,7 @@ using your file-writing tool. Use this layout:
 ## Prioritized Findings & AI Suggestions
 
 {{range findings, ordered by Severity}}
-### [Issue 1] [`[ReviewerPersona]`] - Severity: [High | Medium | Low]
+### [Issue 1] [`[ReviewerPersona]`] - Severity: [Blocker | Major | Nit]
 *   **Affected Scope:** [Lines Start-End]([RelativePath]#L[Start]-L[End]) ([Sub-header])
 *   **Discrepancy Description:** [copied from FindingsList]
 *   **Rationale:** [copied from FindingsList]

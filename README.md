@@ -1,4 +1,4 @@
-> **Local fork: `@tklu/pi-egm`** — based on the installed `@rizkiaprita/egm@0.3.2` snapshot.
+> **Local fork: `@tklu/pi-egm`** — based on the installed `@rizkiaprita/egm@0.3.2` snapshot, with selected files updated from Google’s upstream commit [`0997679`](https://github.com/google/elephant-goldfish-model/commit/0997679).
 > This package is private and is not published to npm. See [FORK.md](FORK.md) for local usage and provenance.
 > The upstream README follows; its npm installation instructions refer to upstream packages, not this fork.
 
@@ -17,15 +17,21 @@
 
 <br>
 
-Thousands of Google engineers use EGM, an open-source plugin, to draft specs with deep-context agents and stress-test them with zero-context subagents before writing code.
+Develop ideas with context and review documents with fresh eyes. EGM is an open-source plugin for AI assistants.
 
 **Elephant** holds your project context and drafts the specification. **Goldfish** reviewers examine the draft and referenced source material without the earlier conversation, helping expose unstated assumptions and blind spots. **You** make the architectural trade-offs and approve the specification before implementing.
 
-Use it when a feature needs design decisions before implementation. For a small, clear bug fix, use your normal coding workflow.
+The built-in draft and design-review workflow targets software specifications. For other documents, choose reviewers and standards with `/egm-review-loop`. Bootstrap and drift reporting apply to software codebases.
+
+https://github.com/user-attachments/assets/93c799a2-10a3-4266-af02-eb79dd33a9a2
 
 ## Install
 
 Choose your coding agent. Install the complete plugin so its skills can read the reviewer prompts and document standards.
+
+### ChatGPT and Codex desktop
+
+Open the [published EGM plugin](https://chatgpt.com/plugins/plugins_6aeb90f47ec88191a3c107e01d3eb357) in the desktop app and install it. This listing is desktop-only. For Codex CLI, use the commands below.
 
 ### Antigravity CLI
 
@@ -42,28 +48,40 @@ claude plugin marketplace add google/elephant-goldfish-model
 claude plugin install egm@egm
 ```
 
-### Codex
+### Codex CLI
 
 ```sh
 codex plugin marketplace add google/elephant-goldfish-model
 codex plugin add egm@egm
 ```
 
-### Pi
+Start a new session after installation. For **Claude Cowork** and **ChatGPT Work**, see the [setup guide](docs/harnesses.md).
 
-```sh
-pi install npm:egm
-# or scoped:
-pi install npm:@google/elephant-goldfish-model
+## Try a 60-second review on existing code
+
+Review an existing design document, README, or PR plan against the live code. You do not need to write a new specification. The commands below use the `/egm:` prefix for Antigravity (agy CLI) and Claude Code. In Codex, select the corresponding EGM skill from the skill picker.
+
+<img src="skills/egm-review/assets/icon.svg" width="20" height="20" align="top" alt=""> **Review an existing document**
+
+```text
+/egm:egm-review docs/designs/webhooks.md
 ```
 
-Start a new session after installation. For **Claude Cowork** and **ChatGPT Work**, see the [setup guide](docs/harnesses.md).
+Use the path to your design doc, or to a PR plan saved as Markdown. Fresh reviewers check the design, its clarity, its fit with the code, and its implementation plan.
+
+<img src="skills/egm-drift-report/assets/icon.svg" width="20" height="20" align="top" alt=""> **Check for drift**
+
+```text
+/egm:egm-drift-report docs/designs/
+```
+
+The agent compares each document in the folder with the current source code and reports where they diverge. You decide whether to update the document or the code.
 
 ## Try your first design
 
 Open your project in your coding agent and choose a feature that needs design decisions. This example adds webhook delivery: what should happen when a delivery fails, or the same event arrives twice?
 
-The commands below are shown without a prefix. In Antigravity (agy CLI) and Claude Code, add the `/egm:` prefix, for example `/egm:egm-brainstorm`. On agy CLI 1.4.10 an unprefixed name is completed to the prefixed command ([#220](https://github.com/google/elephant-goldfish-model/issues/220)), but 1.4.8 does not ([#196](https://github.com/google/elephant-goldfish-model/issues/196)), so keep the prefix. In Pi, use the skill commands, for example `/skill:egm-brainstorm`. In Codex, select the corresponding EGM skill from the skill picker. Brainstorming and review require a session that can create fresh subagents.
+The commands below are shown without a prefix. In Antigravity (agy CLI) and Claude Code, add the `/egm:` prefix, for example `/egm:egm-brainstorm`. On agy CLI 1.4.10 an unprefixed name is completed to the prefixed command ([#220](https://github.com/google/elephant-goldfish-model/issues/220)), but 1.4.8 does not ([#196](https://github.com/google/elephant-goldfish-model/issues/196)), so keep the prefix. In Codex, select the corresponding EGM skill from the skill picker. Brainstorming and review require a session that can create fresh subagents.
 
 <img src="skills/egm-brainstorm/assets/icon.svg" width="20" height="20" align="top" alt=""> **Explore the idea**
 
