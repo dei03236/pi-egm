@@ -5,7 +5,8 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { createAgentSession, SessionManager } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import * as fs from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { loadPersonaRegistry, lookupPersona, PersonaRegistryInitializationError } from "./persona-registry.ts";
+import type { PersonaRegistry } from "./persona-registry.ts";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,28 +15,13 @@ const currentDir = typeof __dirname !== "undefined"
   : path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = currentDir;
 
-const PERSONAS: Record<string, string> = {
-  "egm-zoom-out": "agents/zoom_out.md",
-  "zoom_out": "agents/zoom_out.md",
-  "egm-comprehension": "agents/comprehension.md",
-  "comprehension": "agents/comprehension.md",
-  "egm-design": "agents/design_critic.md",
-  "egm-design-critic": "agents/design_critic.md",
-  "design_critic": "agents/design_critic.md",
-  "egm-structural": "agents/structural.md",
-  "structural": "agents/structural.md",
-  "egm-style": "agents/style.md",
-  "style": "agents/style.md",
-  "egm-implementation-readiness": "agents/implementation_readiness.md",
-  "implementation_readiness": "agents/implementation_readiness.md",
-  "egm-codebase-details": "agents/codebase_details.md",
-  "codebase_details": "agents/codebase_details.md",
-  "egm-synthesizer": "agents/synthesizer.md",
-  "synthesizer": "agents/synthesizer.md",
-  "egm-bootstrap": "agents/bootstrap_orchestrator.md",
-  "egm-bootstrap-orchestrator": "agents/bootstrap_orchestrator.md",
-  "bootstrap_orchestrator": "agents/bootstrap_orchestrator.md",
-};
+type RegistryOutcome = { ok: true; registry: PersonaRegistry } | { ok: false; cause: unknown };
+function initializeRegistry(root: string, load = loadPersonaRegistry): Promise<RegistryOutcome> {
+  return load(root).then(
+    registry => ({ ok: true as const, registry }),
+    cause => ({ ok: false as const, cause }),
+  );
+}
 
 const READ_ONLY_REVIEWER_TOOLS = ["read", "grep", "find", "ls"];
 const SYNTHESIZER_TOOLS = ["read", "grep", "find", "ls", "write", "invoke_subagent"];
@@ -63,20 +49,13 @@ type SubagentInput = {
   context_files?: string[];
 };
 
-function resolvePersonaPath(subagent: string): string | null {
-  const normalized = subagent.trim().toLowerCase();
-  const relPath = PERSONAS[normalized]
-    || PERSONAS[normalized.replace(/^egm-/, "")]
-    || PERSONAS[normalized.replace(/-/g, "_")];
-  if (relPath) {
-    const candidate = path.join(packageRoot, relPath);
-    if (existsSync(candidate)) return candidate;
-  }
-  const fallback = path.join(packageRoot, "agents", `${normalized.replace(/^egm-/, "").replace(/-/g, "_")}.md`);
-  return existsSync(fallback) ? fallback : null;
-}
+// Internal seam: tests supply sessions and reads without launching the host.
+const runtime = { createAgentSession, sessionManager: () => SessionManager.inMemory(), readFile: fs.readFile };
+export const __testing = { initializeRegistry, createSubagentToolDefinition };
 
-function createSubagentToolDefinition(pkgRoot: string, events: ExtensionAPI["events"]) {
+function createSubagentToolDefinition(
+  pkgRoot: string, events: ExtensionAPI["events"], registryOutcome: Promise<RegistryOutcome>, dependencies = runtime,
+) {
   return {
     name: "invoke_subagent",
     label: "invoke_subagent",
@@ -98,16 +77,16 @@ function createSubagentToolDefinition(pkgRoot: string, events: ExtensionAPI["eve
       let customTools: any[] = [];
       if (isSynth) {
         activeTools = SYNTHESIZER_TOOLS;
-        customTools = [createSubagentToolDefinition(pkgRoot, events)];
+        customTools = [createSubagentToolDefinition(pkgRoot, events, registryOutcome, dependencies)];
       } else if (isBootstrap) {
         activeTools = BOOTSTRAP_TOOLS;
-        customTools = [createSubagentToolDefinition(pkgRoot, events)];
+        customTools = [createSubagentToolDefinition(pkgRoot, events, registryOutcome, dependencies)];
       } else {
         activeTools = READ_ONLY_REVIEWER_TOOLS;
       }
 
-      const sessionManager = SessionManager.inMemory();
-      const { session: childSession } = await createAgentSession({
+      const sessionManager = dependencies.sessionManager();
+      const { session: childSession } = await dependencies.createAgentSession({
         sessionManager,
         cwd: ctx.cwd,
         tools: activeTools,
@@ -131,11 +110,14 @@ function createSubagentToolDefinition(pkgRoot: string, events: ExtensionAPI["eve
         _signal?.throwIfAborted();
 
         let assembledPrompt = "";
-        const personaPath = resolvePersonaPath(subagent);
-        if (personaPath) {
-          const personaText = await fs.readFile(personaPath, "utf-8");
-          assembledPrompt += `You are operating as the specialized persona defined below:\n\n${personaText}\n\n---\n\n`;
+        const outcome = await registryOutcome;
+        if (!outcome.ok) {
+          throw outcome.cause instanceof PersonaRegistryInitializationError
+            ? outcome.cause : new PersonaRegistryInitializationError(outcome.cause);
         }
+        const persona = lookupPersona(outcome.registry, subagent);
+        const personaText = await dependencies.readFile(persona.filePath, "utf8");
+        assembledPrompt += `You are operating as the specialized persona defined below:\n\n${personaText}\n\n---\n\n`;
         if (params.mode) {
           assembledPrompt += `Mode: ${params.mode}\n\n`;
         }
@@ -181,7 +163,8 @@ function createSubagentToolDefinition(pkgRoot: string, events: ExtensionAPI["eve
 }
 
 export default function egmExtension(pi: ExtensionAPI) {
-  pi.registerTool(createSubagentToolDefinition(packageRoot, pi.events));
+  const registryOutcome = initializeRegistry(packageRoot);
+  pi.registerTool(createSubagentToolDefinition(packageRoot, pi.events, registryOutcome));
   // Slash commands are the skill commands Pi derives from skills/. Do not
   // register /egm-* commands here: prompt shims that forward to a skill showed
   // up twice in the command menu, and command names registered here on top of

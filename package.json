@@ -28,6 +28,9 @@
     "@earendil-works/pi-tui": "*",
     "typebox": "*"
   },
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/persona-registry.test.ts tests/index-integration.test.ts"
+  },
   "pi": {
     "extensions": [
       "./index.ts"
@@ -44,6 +47,7 @@
     "FORK.md",
     "assets/icon.svg",
     "index.ts",
+    "persona-registry.ts",
     "skills/",
     "!skills/**/TEST.md",
     "!skills/**/test_scenarios.yaml",
