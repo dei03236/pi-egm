@@ -1,7 +1,6 @@
 {
   "name": "@tklu/pi-egm",
-  "private": true,
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "description": "Draft specs, review designs, and check implementation drift.",
   "keywords": [
@@ -15,11 +14,23 @@
     "goldfish",
     "elephant"
   ],
-  "author": {
-    "name": "Google"
+  "author": "tklu",
+  "contributors": [
+    "Google (upstream EGM)",
+    "rizkiaprita (original Pi port)"
+  ],
+  "homepage": "https://github.com/dei03236/pi-egm#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dei03236/pi-egm.git"
   },
-  "homepage": "https://egm.dev",
-  "repository": "https://github.com/google/elephant-goldfish-model",
+  "bugs": {
+    "url": "https://github.com/dei03236/pi-egm/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "license": "Apache-2.0",
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",
@@ -44,7 +55,6 @@
     "package.json",
     "LICENSE",
     "README.md",
-    "FORK.md",
     "assets/icon.svg",
     "index.ts",
     "persona-registry.ts",

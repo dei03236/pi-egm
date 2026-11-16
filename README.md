@@ -1,158 +1,101 @@
-> **Local fork: `@tklu/pi-egm`** — based on the installed `@rizkiaprita/egm@0.3.2` snapshot, with selected files updated from Google’s upstream commit [`0997679`](https://github.com/google/elephant-goldfish-model/commit/0997679).
-> This package is private and is not published to npm. See [FORK.md](FORK.md) for local usage and provenance.
-> The upstream README follows; its npm installation instructions refer to upstream packages, not this fork.
+# pi-egm
 
-<p align="center">
-  <a href="https://egm.dev"><img src="docs/assets/readme-header.svg" width="480" height="116" alt="Elephant-Goldfish Model"></a>
-</p>
+An Elephant–Goldfish Model (EGM) extension for the [Pi coding agent](https://pi.dev). Draft specifications with your main agent, then have fresh-context reviewer subagents challenge the design before you implement it.
 
-<p align="center">Design with an elephant. Review with a goldfish.</p>
+This project started as an independent fork of [`@rizkiaprita/egm@0.3.2`](https://www.npmjs.com/package/@rizkiaprita/egm/v/0.3.2), maintained as `@tklu/pi-egm`. It is not an official Google or Pi project.
 
-<p align="center">
-  <a href="#install">Install</a> &ensp;·&ensp;
-  <a href="#try-your-first-design">Quickstart</a> &ensp;·&ensp;
-  <a href="docs/getting_started.md">Documentation</a> &ensp;·&ensp;
-  <a href="https://egm.dev">Website</a>
-</p>
+## Other Pi ports and what makes this fork different
 
-<br>
+Other EGM ports for Pi include [`@schultzp2020/pi-egm`](https://www.npmjs.com/package/@schultzp2020/pi-egm), [`@estebanforge/pi-egm`](https://www.npmjs.com/package/@estebanforge/pi-egm), and [`@rizkiaprita/egm`](https://www.npmjs.com/package/@rizkiaprita/egm), on which this fork is based.
 
-Develop ideas with context and review documents with fresh eyes. EGM is an open-source plugin for AI assistants.
+This fork focuses on:
 
-**Elephant** holds your project context and drafts the specification. **Goldfish** reviewers examine the draft and referenced source material without the earlier conversation, helping expose unstated assumptions and blind spots. **You** make the architectural trade-offs and approve the specification before implementing.
+- **Fixing Pi integration bugs** in the original `@rizkiaprita/egm@0.3.2` package, as detailed below.
+- **Being self-contained:** the extension, subagent runtime integration, personas, and skills are bundled together. It does not depend on other Pi add-on packages such as `pi-subagents`; it uses Pi's own SDK to create child sessions. Pi itself and its host-provided libraries are still required.
+- **Keeping Google's personas current:** all ten bundled personas match Google's latest upstream versions as verified on **2026-11-16**.
 
-The built-in draft and design-review workflow targets software specifications. For other documents, choose reviewers and standards with `/egm-review-loop`. Bootstrap and drift reporting apply to software codebases.
 
-https://github.com/user-attachments/assets/93c799a2-10a3-4266-af02-eb79dd33a9a2
+## Why this fork exists
 
-## Install
+The original Pi package had bugs in its subagent integration that needed fixing. This fork addresses them and updates the reviewer personas that were outdated in `@rizkiaprita/egm@0.3.2`.
 
-Choose your coding agent. Install the complete plugin so its skills can read the reviewer prompts and document standards.
+The Pi-specific fixes include:
 
-### ChatGPT and Codex desktop
+- **Permission forwarding:** announce child sessions before binding their extensions so permission prompts can be forwarded to the parent session, including nested runs.
+- **Cancellation:** propagate cancellation to the child session instead of leaving the subagent running independently.
+- **Child-session cleanup:** await extension shutdown handlers before disposing of a child session, allowing extensions to release timers and other resources.
+- **Persona resolution:** replace hard-coded aliases and an unsafe filename fallback with a session-local registry. Unknown or ambiguous personas fail explicitly rather than silently running without the intended persona.
+- **Role-specific tool access:** select synthesizer and bootstrap privileges from the resolved persona's identity, rather than the spelling of the caller-supplied alias. Ordinary reviewers have read-only tools.
 
-Open the [published EGM plugin](https://chatgpt.com/plugins/plugins_6aeb90f47ec88191a3c107e01d3eb357) in the desktop app and install it. This listing is desktop-only. For Codex CLI, use the commands below.
+### Updated Google personas
 
-### Antigravity CLI
+This repository includes newer personas from [Google's EGM project](https://github.com/google/elephant-goldfish-model), replacing the outdated versions shipped in `@rizkiaprita/egm@0.3.2`. The recorded upstream import is commit [`0997679`](https://github.com/google/elephant-goldfish-model/commit/0997679). On **2026-11-16**, all ten persona files were also verified against upstream `main` at [`72d06f5`](https://github.com/google/elephant-goldfish-model/commit/72d06f52a2482885d9a64bd24b291c6e8628942c).
 
-```sh
-agy plugin install https://github.com/google/elephant-goldfish-model
-```
+Selected upstream files were imported; this fork is not a full checkout of that commit and does not automatically track subsequent Google updates. For the original project's background and broader documentation, see [Google's README](https://github.com/google/elephant-goldfish-model/blob/main/README.md).
 
-For the **Antigravity App** and **Antigravity for IDEs** (Visual Studio Code extension), run `/plugin` or see the [installation instructions](docs/harnesses.md#antigravity-app-and-antigravity-for-ides).
+## Install in Pi
 
-### Claude Code
+Install the public npm package in Pi:
 
 ```sh
-claude plugin marketplace add google/elephant-goldfish-model
-claude plugin install egm@egm
+pi install npm:@tklu/pi-egm
 ```
 
-### Codex CLI
+Alternatively, install directly from this repository:
 
 ```sh
-codex plugin marketplace add google/elephant-goldfish-model
-codex plugin add egm@egm
+pi install git:github.com/dei03236/pi-egm
 ```
 
-Start a new session after installation. For **Claude Cowork** and **ChatGPT Work**, see the [setup guide](docs/harnesses.md).
+Restart Pi after installation. The package supplies both the Pi extension and its EGM skills; no separate subagent extension is required.
 
-## Try a 60-second review on existing code
+**Do not load this fork alongside `@rizkiaprita/egm`:** both register the same tool and skills. If replacing that package, back up any modifications to its installed files before removing it:
 
-Review an existing design document, README, or PR plan against the live code. You do not need to write a new specification. The commands below use the `/egm:` prefix for Antigravity (agy CLI) and Claude Code. In Codex, select the corresponding EGM skill from the skill picker.
+```sh
+pi remove npm:@rizkiaprita/egm
+pi install npm:@tklu/pi-egm
+```
 
-<img src="skills/egm-review/assets/icon.svg" width="20" height="20" align="top" alt=""> **Review an existing document**
+The package is published publicly on npm as [`@tklu/pi-egm`](https://www.npmjs.com/package/@tklu/pi-egm).
+
+## Use in Pi
+
+Your main Pi agent retains the project context and helps you develop a design. The extension's `invoke_subagent` tool runs Goldfish reviewers in separate, in-memory sessions, without the main conversation history. Reviewers receive their persona, the task, and any supplied context files. You decide which findings to address and when a design is ready to implement.
+
+Invoke the bundled skills using Pi's `/skill:` commands:
+
+| Skill | Purpose |
+| --- | --- |
+| `/skill:egm-brainstorm` | Explore an idea and develop a concept brief. |
+| `/skill:egm-draft` | Turn a brief or notes into a design document. |
+| `/skill:egm-review` | Review a design with fresh-context reviewers. |
+| `/skill:egm-resolve` | Work through review findings and agree on changes. |
+| `/skill:egm-review-loop` | Run a configurable review loop for a document or task. |
+| `/skill:egm-bootstrap` | Create or update directory README files for an existing codebase. |
+| `/skill:egm-drift-report` | Compare design documents with the current implementation. |
+
+For example:
 
 ```text
-/egm:egm-review docs/designs/webhooks.md
+/skill:egm-brainstorm Add webhook delivery with retries to this project.
+/skill:egm-draft
+/skill:egm-review design_draft.md
 ```
 
-Use the path to your design doc, or to a PR plan saved as Markdown. Fresh reviewers check the design, its clarity, its fit with the code, and its implementation plan.
+Use the document path produced by your session. You can also review an existing document without first brainstorming or drafting. Reviews supplement tests and human judgment; they do not replace them.
 
-<img src="skills/egm-drift-report/assets/icon.svg" width="20" height="20" align="top" alt=""> **Check for drift**
+## Development
 
-```text
-/egm:egm-drift-report docs/designs/
+The Pi integration lives in `index.ts`, persona discovery in `persona-registry.ts`, reviewer definitions in `agents/`, and workflows in `skills/`.
+
+Run the persona-registry and extension integration tests with a Node.js version that supports `--experimental-strip-types`:
+
+```sh
+npm test
 ```
 
-The agent compares each document in the folder with the current source code and reports where they diverge. You decide whether to update the document or the code.
+Please report fork-specific bugs and submit changes in [this repository](https://github.com/dei03236/pi-egm/issues).
 
-## Try your first design
+## License and attribution
 
-Open your project in your coding agent and choose a feature that needs design decisions. This example adds webhook delivery: what should happen when a delivery fails, or the same event arrives twice?
-
-The commands below are shown without a prefix. In Antigravity (agy CLI) and Claude Code, add the `/egm:` prefix, for example `/egm:egm-brainstorm`. On agy CLI 1.4.10 an unprefixed name is completed to the prefixed command ([#220](https://github.com/google/elephant-goldfish-model/issues/220)), but 1.4.8 does not ([#196](https://github.com/google/elephant-goldfish-model/issues/196)), so keep the prefix. In Codex, select the corresponding EGM skill from the skill picker. Brainstorming and review require a session that can create fresh subagents.
-
-<img src="skills/egm-brainstorm/assets/icon.svg" width="20" height="20" align="top" alt=""> **Explore the idea**
-
-```text
-/egm-brainstorm Add webhook delivery to this project.
-```
-
-Discuss requirements and trade-offs with the agent. Fresh reviewers challenge the proposal, and the agent saves the agreed direction in `concepts_brief.md`.
-
-<img src="skills/egm-draft/assets/icon.svg" width="20" height="20" align="top" alt=""> **Draft the specification**
-
-```text
-/egm-draft
-```
-
-The agent turns the brief into `design_draft.md`, pausing after each section for your feedback in chat.
-
-<img src="skills/egm-review/assets/icon.svg" width="20" height="20" align="top" alt=""> **Review the draft**
-
-```text
-/egm-review design_draft.md
-```
-
-Use the draft path returned by the agent.
-
-Fresh reviewers check the design, its clarity, its fit with the code, and its implementation plan. Choose which findings to address. When you approve the design, ask your coding agent to implement it.
-
-See the [workflow guide](docs/getting_started.md) for the full process, including saving approved specifications under `docs/designs/`.
-
-## How it works
-
-<table>
-  <thead><tr><th align="left">Role</th><th align="left">Context</th><th align="left">Responsibility</th></tr></thead>
-  <tbody>
-    <tr valign="top"><td><strong>Elephant</strong></td><td>Your project, requirements, and earlier decisions</td><td>Explore the problem and draft the specification.</td></tr>
-    <tr valign="top"><td><strong>Goldfish</strong></td><td>The document and its referenced source material, without the earlier conversation</td><td>Find missing assumptions, unclear requirements, and implementation risks.</td></tr>
-    <tr valign="top"><td><strong>You</strong></td><td>The goals and constraints that matter</td><td>Resolve trade-offs, approve the design, and decide what to build.</td></tr>
-  </tbody>
-</table>
-
-Goldfish reviews require fresh subagent contexts. If your agent cannot create them, EGM stops the review. A review does not replace tests or human judgment. See [supported environments and verification limits](docs/harnesses.md#support-status--contributing-other-harnesses).
-
-## Choose a skill
-
-You can use each skill when you need it. You do not have to follow the full sequence.
-
-<table>
-  <thead><tr><th align="left">Skill</th><th align="left">Use it to…</th></tr></thead>
-  <tbody>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-brainstorm/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-brainstorm/SKILL.md">Brainstorm</a></td><td>Test an idea and write a concept brief.</td></tr>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-draft/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-draft/SKILL.md">Draft</a></td><td>Turn a brief or existing notes into a design document.</td></tr>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-resolve/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-resolve/SKILL.md">Resolve</a></td><td>Work through review findings and agree on changes.</td></tr>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-bootstrap/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-bootstrap/SKILL.md">Bootstrap</a></td><td>Create or update documentation for an existing codebase.</td></tr>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-review/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-review/SKILL.md">Review</a></td><td>Review a design with fresh agents across five stages.</td></tr>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-review-loop/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-review-loop/SKILL.md">Review&nbsp;loop</a></td><td>Run a configured group of reviewers for a specific review task.</td></tr>
-    <tr valign="top"><td width="160" valign="top"><img src="skills/egm-drift-report/assets/icon.svg" width="20" height="20" alt="" align="top">&nbsp;<a href="skills/egm-drift-report/SKILL.md">Drift&nbsp;report</a></td><td>Compare checked-in documents with the current source code.</td></tr>
-  </tbody>
-</table>
-
-## Learn more
-
-- [Getting started](docs/getting_started.md): the workflow and project layout.
-- [Setup](docs/harnesses.md): installation, agent capabilities, and known limits.
-- [Architecture](https://github.com/google/elephant-goldfish-model/blob/main/docs/designs/architecture.md): how skills and reviewers fit together.
-- [Testing](https://github.com/google/elephant-goldfish-model/blob/main/TESTING.md): checks, execution records, and verification limits.
-- [Dave Rensin’s original essay](https://medium.com/@drensin/elephants-goldfish-and-the-new-golden-age-of-software-engineering-c33641a48874): the ideas behind EGM.
-
-## Contribute
-
-Read [contributing](https://github.com/google/elephant-goldfish-model/blob/main/CONTRIBUTING.md) for PRs, [issues](https://github.com/google/elephant-goldfish-model/issues) for bugs, and [discussions](https://github.com/google/elephant-goldfish-model/discussions) for questions.
-
-## License
-
-[Apache 2.0](LICENSE). This is not an officially supported Google product.
+[Apache License 2.0](LICENSE). This fork is based on `@rizkiaprita/egm@0.3.2` and incorporates selected material from Google's Elephant–Goldfish Model project. Original copyright notices and the license are retained. This is not an officially supported Google product.
