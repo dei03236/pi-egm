@@ -35,6 +35,8 @@ Selected upstream files were imported; this fork is not a full checkout of that 
 
 ## Install in Pi
 
+The Pi SDK compatibility baseline for this fork is **Pi 1.5.2**, used for the integration review. A minimum supported Pi version has not been established; compatibility with other releases is not guaranteed.
+
 Install the public npm package in Pi:
 
 ```sh
@@ -60,7 +62,7 @@ The package is published publicly on npm as [`@tklu/pi-egm`](https://www.npmjs.c
 
 ## Use in Pi
 
-Your main Pi agent retains the project context and helps you develop a design. The extension's `invoke_subagent` tool runs Goldfish reviewers in separate, in-memory sessions, without the main conversation history. Reviewers receive their persona, the task, and any supplied context files. You decide which findings to address and when a design is ready to implement.
+Your main Pi agent retains the project context and helps you develop a design. The extension's `invoke_subagent` tool runs Goldfish reviewers in separate, in-memory sessions, without the main conversation history. Reviewers receive their persona, the task, and any supplied context-file paths, which they can inspect using read tools. You decide which findings to address and when a design is ready to implement.
 
 Invoke the bundled skills using Pi's `/skill:` commands:
 
@@ -70,9 +72,11 @@ Invoke the bundled skills using Pi's `/skill:` commands:
 | `/skill:egm-draft` | Turn a brief or notes into a design document. |
 | `/skill:egm-review` | Review a design with fresh-context reviewers. |
 | `/skill:egm-resolve` | Work through review findings and agree on changes. |
-| `/skill:egm-review-loop` | Run a configurable review loop for a document or task. |
+| `/skill:egm-review-loop` | Run a configurable review loop and apply approved fixes. |
 | `/skill:egm-bootstrap` | Create or update directory README files for an existing codebase. |
 | `/skill:egm-drift-report` | Compare design documents with the current implementation. |
+
+Ordinary reviewer subagents have read-only tools, but the workflows are not entirely read-only: they can create concept briefs, drafts, and review reports. Review-loop can apply approved changes, and bootstrap subagents have file-writing, editing, and shell access.
 
 For example:
 
@@ -88,7 +92,7 @@ Use the document path produced by your session. You can also review an existing 
 
 The Pi integration lives in `index.ts`, persona discovery in `persona-registry.ts`, reviewer definitions in `agents/`, and workflows in `skills/`.
 
-Run the persona-registry and extension integration tests with a Node.js version that supports `--experimental-strip-types`:
+The test suite requires Node.js with both TypeScript stripping (`--experimental-strip-types`) and `node:module.registerHooks` support. It has been run successfully on **Node.js 24.16.0**; this is a tested version, not a minimum-version claim.
 
 ```sh
 npm test
