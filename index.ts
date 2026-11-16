@@ -166,6 +166,18 @@ function createSubagentToolDefinition(
 export default function egmExtension(pi: ExtensionAPI) {
   const registryOutcome = initializeRegistry(packageRoot);
   pi.registerTool(createSubagentToolDefinition(packageRoot, pi.events, registryOutcome));
+  pi.on("session_start", async (_event, ctx) => {
+    const outcome = await registryOutcome;
+    if (!ctx.hasUI) return;
+    if (!outcome.ok) {
+      ctx.ui.notify("EGM: persona registry initialization failed; subagents are unavailable.", "error");
+    } else if (outcome.registry.conflicts || outcome.registry.skippedEntries) {
+      ctx.ui.notify(
+        `EGM personas: ${outcome.registry.conflicts} conflicts, ${outcome.registry.skippedEntries} skipped entries. Set PI_EGM_DEBUG_LOG to a file path for details.`,
+        "warning",
+      );
+    }
+  });
   // Slash commands are the skill commands Pi derives from skills/. Do not
   // register /egm-* commands here: prompt shims that forward to a skill showed
   // up twice in the command menu, and command names registered here on top of

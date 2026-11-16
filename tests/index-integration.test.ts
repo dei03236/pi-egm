@@ -151,9 +151,19 @@ test("tool permissions follow exact registered persona identities, not caller su
   }
 });
 
-test("extension registers the integrated tool without launching a child", () => {
+test("extension registers the integrated tool and initializes quietly without launching a child", async () => {
   const tools: any[] = [];
-  extension({ registerTool: (tool: any) => tools.push(tool), events: { emit() {} } } as any);
+  const handlers = new Map<string, Function>();
+  extension({
+    registerTool: (tool: any) => tools.push(tool),
+    on: (event: string, handler: Function) => handlers.set(event, handler),
+    events: { emit() {} },
+  } as any);
   assert.equal(tools.length, 1);
   assert.equal(tools[0].name, "invoke_subagent");
+  const notifications: any[] = [];
+  await handlers.get("session_start")!({}, {
+    hasUI: true, ui: { notify: (...args: any[]) => notifications.push(args) },
+  });
+  assert.deepEqual(notifications, []);
 });

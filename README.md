@@ -15,6 +15,12 @@ This fork focuses on:
 - **Keeping Google's personas current:** all ten bundled personas match Google's latest upstream versions as verified on **2026-11-16**.
 
 
+## Persona diagnostics
+
+Successful persona initialization is silent. Conflicts, skipped entries, and initialization failures are reported through Pi's UI, never directly to the terminal.
+
+To capture detailed diagnostics (including the initialization summary), set `PI_EGM_DEBUG_LOG` to a writable log-file path before starting Pi. Events are appended to that file; logging failures are ignored so they cannot interrupt initialization.
+
 ## Why this fork exists
 
 The original Pi package had bugs in its subagent integration that needed fixing. This fork addresses them and updates the reviewer personas that were outdated in `@rizkiaprita/egm@0.3.2`.

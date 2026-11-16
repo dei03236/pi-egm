@@ -26,7 +26,15 @@ interface PersonaRegistryDependencies {
 }
 const nodeDependencies: PersonaRegistryDependencies = {
   readdir: fs.readdir, lstat: fs.lstat, readFile: fs.readFile,
-  diagnostic: (event) => console.warn("[pi-egm personas]", JSON.stringify(event)),
+  diagnostic: (event) => {
+    // Never write directly to the terminal: it belongs to Pi's renderer.
+    const logPath = process.env.PI_EGM_DEBUG_LOG;
+    if (logPath) {
+      void fs.appendFile(logPath, `[pi-egm personas] ${JSON.stringify(event)}\n`).catch(() => {
+        // Debug logging must not interrupt initialization or corrupt the UI.
+      });
+    }
+  },
 };
 export class PersonaRegistryInitializationError extends Error {
   constructor(cause: unknown) {
